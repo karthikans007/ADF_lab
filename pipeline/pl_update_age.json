@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@concat('select * from dbo.employees where name = ', '''','pipeline().parameters.p_name','''')",
+							"value": "@concat('select * from dbo.employees where name = ', '''',pipeline().parameters.p_name,'''')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -28,7 +28,7 @@
 						"referenceName": "ds_sqldb_sql",
 						"type": "DatasetReference"
 					},
-					"firstRowOnly": true
+					"firstRowOnly": false
 				}
 			},
 			{
