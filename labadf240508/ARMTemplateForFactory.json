@@ -94,7 +94,7 @@
 							"source": {
 								"type": "AzureSqlSource",
 								"sqlReaderQuery": {
-									"value": "@concat('select * from dbo.employees where name = ', '''','pipeline().parameters.p_name','''')",
+									"value": "@concat('select * from dbo.employees where name = ', '''',pipeline().parameters.p_name,'''')",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -105,7 +105,7 @@
 								"type": "DatasetReference",
 								"parameters": {}
 							},
-							"firstRowOnly": false
+							"firstRowOnly": true
 						}
 					},
 					{
@@ -127,7 +127,7 @@
 						"typeProperties": {
 							"variableName": "v_age",
 							"value": {
-								"value": "@string(\n    sub(\n        int(formatDateTime(utcNow(),'yyyy')),\n\t\tint(formatDateTime(activity('get_employee').output.firstrow.dob,'yyyy'))\n)\n)",
+								"value": "@string(\n    sub(\n        int(formatDateTime(utcNow(),'yyyy')),\n\t\tint(formatDateTime(activity('get_employee').output.firstRow.DOB,'yyyy'))\n)\n)",
 								"type": "Expression"
 							}
 						}
@@ -155,7 +155,7 @@
 							"source": {
 								"type": "AzureSqlSource",
 								"sqlReaderQuery": {
-									"value": "@concat('update dbo.employees set age = ',\nvariables('v_age'),\n'where name = ','''',pipeline().parameters.p_name, '''' )",
+									"value": "@concat('update dbo.employees set age = ','''',\nvariables('v_age'),'''',\n' where name = ','''',pipeline().parameters.p_name, '''; select 1' )",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -177,6 +177,151 @@
 					"p_name": {
 						"type": "string"
 					}
+				},
+				"variables": {
+					"v_age": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_sqldb_sql')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_update_age_for_all _employees')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "get_employee",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat('select * from dbo.employees')",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sqldb_sql",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "get_employee",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('get_employee').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "calculate_age",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "v_age",
+										"value": {
+											"value": "@string(\n    sub(\n        int(formatDateTime(utcNow(),'yyyy')),\n\t\tint(formatDateTime(item().DOB,'yyyy'))\n)\n)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "update_employee",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "calculate_age",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "@concat('update dbo.employees set age = ','''',\nvariables('v_age'),'''',\n' where name = ','''',item().name, '''; select 1' )",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "ds_sqldb_sql",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"firstRowOnly": false
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
 				},
 				"variables": {
 					"v_age": {
