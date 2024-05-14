@@ -50,7 +50,7 @@
 				"typeProperties": {
 					"variableName": "v_age",
 					"value": {
-						"value": "@string(\n    sub(\n        int(formatDateTime(utcNow(),'yyyy')),\n\t\tint(formatDateTime(activity('get_employee').output.firstRow.DOB,'yyyy'))\n)\n)",
+						"value": "@string(\n    sub(\n        int(formatDateTime(utcNow(),'yyyy')),\n\t\tint(formatDateTime(activity('get_employee').output.value[2].DOB,'yyyy'))\n)\n)",
 						"type": "Expression"
 					}
 				}
@@ -99,7 +99,7 @@
 		},
 		"variables": {
 			"v_age": {
-				"type": "String"
+				"type": "Integer"
 			}
 		},
 		"annotations": []
