@@ -249,7 +249,7 @@
 									"type": "SetVariable",
 									"dependsOn": [
 										{
-											"activity": "Set variable1",
+											"activity": "reset_age",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -306,7 +306,7 @@
 									}
 								},
 								{
-									"name": "Set variable1",
+									"name": "reset_age",
 									"type": "SetVariable",
 									"dependsOn": [],
 									"policy": {
@@ -314,7 +314,13 @@
 										"secureInput": false
 									},
 									"userProperties": [],
-									"typeProperties": {}
+									"typeProperties": {
+										"variableName": "v_age",
+										"value": {
+											"value": "@concat('')",
+											"type": "Expression"
+										}
+									}
 								}
 							]
 						}
