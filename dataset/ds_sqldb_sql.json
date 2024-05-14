@@ -1,0 +1,22 @@
+{
+	"name": "ds_sqldb_sql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ln_sqldb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().p_schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().p_table",
+				"type": "Expression"
+			}
+		}
+	}
+}
