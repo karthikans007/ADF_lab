@@ -99,7 +99,7 @@
 		},
 		"variables": {
 			"v_age": {
-				"type": "Integer"
+				"type": "String"
 			}
 		},
 		"annotations": []
