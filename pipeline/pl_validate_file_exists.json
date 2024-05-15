@@ -1,0 +1,159 @@
+{
+	"name": "pl_validate_file_exists",
+	"properties": {
+		"activities": [
+			{
+				"name": "get_file_metadata_config",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select\nmax(case when property_name = ''container_name'' then property_value end) container_name,\nmax(case when property_name = ''folder_name'' then property_value end) folder_name,\nmax(case when property_name = ''file_name'' then property_value end) file_name\nfrom dbo.etl_metadata_config\nwhere etl_job_name = ',\n'''',pipeline().parameters.p_etl_job_name,'''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sqldb_sql",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Get_all_files",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "get_file_metadata_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_text_file",
+						"type": "DatasetReference",
+						"parameters": {
+							"filename": {
+								"value": "@activity('get_file_metadata_config').output.firstRow.file_name",
+								"type": "Expression"
+							},
+							"foldername": {
+								"value": "@activity('get_file_metadata_config').output.firstRow.folder_name",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "remove_file_extensions",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get_all_files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get_all_files').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "original_file_list",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "v_tempfiles",
+								"value": {
+									"value": "@variables('v_files')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "add_files_to_list",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "original_file_list",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "v_files",
+								"value": {
+									"value": "@concat(variables('v_tempfiles'),substring(item().name,0,indexOf(item().name,'.')),'|' )",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_etl_job_name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_files": {
+				"type": "String"
+			},
+			"v_tempfiles": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
